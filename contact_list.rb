@@ -18,10 +18,18 @@ class ContactList
       when "new"
         ARGV.shift
         puts "What is the name of the contact?"
-        name = gets.chomp
+        name = gets.chomp.downcase.capitalize
         puts "what is the email?"
-        email = gets.chomp
-        Contact.create(name,email)
+        email = gets.chomp.downcase
+        puts "Enter phone number type? (ie. home for home phone, cell for cellphone, work for work phone)"
+        type = gets.chomp
+        puts "Enter the number in the format'444-555-3123'"
+        number = gets.chomp
+        phone = {
+          type.to_sym => number
+        }
+
+        Contact.create(name,email,phone)
       
       when "list"
         Contact.all
