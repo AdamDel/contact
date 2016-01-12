@@ -23,9 +23,19 @@ class Contact
     # Returns an Array of Contacts loaded from the database.
     def all
       # TODO: Return an Array of Contact instances made from the data in 'contacts.csv'.
+      @row_number = 0
       CSV.foreach("contacts.csv") do |row|
+         if @row_number % 5 == 0  && @row_number != 0
+          puts "please press the enter key"
+          makesure_enter
+        end
          puts row.inspect
+         @row_number += 1
       end
+    end
+
+    def makesure_enter
+      input = STDIN.gets.chomp
     end
 
     # Creates a new contact, adding it to the database, returning the new contact.
