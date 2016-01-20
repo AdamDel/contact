@@ -1,93 +1,103 @@
 require 'csv'
 require 'securerandom'
 require 'date'
-
+require 'pg'
 # Represents a person in an address book.
 
 class EmailExistsAlready < StandardError  
 end
+
+
 class Contact
 
-  attr_accessor :name, :email
-
-  def initialize(name, email, phone_number)
-    # TODO: Assign parameter values to instance variables.
-    @name = name
-    @email = email
-    @phone_number = phone_number
+  attr_accessor :name, :email, :id
+  def save 
+    if !id.nil?
+      #do an update
+      self.class.connect.exec_params("UPDATE contacts SET name='#{name}', email='#{email}' WHERE id=#{id}")
+    else
+      #insert data into contacts table
+      res = self.class.connect.exec_params("INSERT INTO contacts(name, email) VALUES ('#{name}', '#{email}') RETURNING id;")
+      self.id = res[0]['id']
+    end
   end
+  # def initialize(name, email)
+  #   # TODO: Assign parameter values to instance variables.
+  #   @name = name
+  #   @email = email
+  #   @phone_number = phone_number
+  #   @result = []
+  # end
 
   # Provides functionality for managing a list of Contacts in a database.
   class << self
-
     # Returns an Array of Contacts loaded from the database.
+    def connect
+      PG.connect(
+        host: 'localhost',
+        dbname: 'contactlist',
+        user: 'development',
+        password: 'development'
+        )
+    end
     def all
       # TODO: Return an Array of Contact instances made from the data in 'contacts.csv'.
-      @row_number = 0
-      CSV.foreach("contacts.csv") do |row|
-         if @row_number % 5 == 0  && @row_number != 0
-          puts "please press the enter key"
-          makesure_enter
+        
+        connect.exec('SELECT * FROM contacts;') do |results|
+        results.each do |contact|
+        puts contact.inspect
         end
-         puts row.inspect
-         @row_number += 1
       end
+    connect.close
+    end
+    def update(id, new_name, new_email)
+       the_contact = Contact.find(id)
+       the_contact.name = new_name
+       the_contact.email = new_email
+       the_contact.save
+       
+      #connect.exec("UPDATE contacts SET name='#{new_name}', email='#{new_email}' WHERE id=#{id}")
+    end
+    def destroy(id)
+       connect.exec("DELETE FROM contacts WHERE id = #{id}")
+      #connect.exec("UPDATE contacts SET name='#{new_name}', email='#{new_email}' WHERE id=#{id}")
     end
 
+  
     def makesure_enter
       input = STDIN.gets.chomp
     end
 
     # Creates a new contact, adding it to the database, returning the new contact.
-    def create (name, email, phone_number)
-      # TODO: Instantiate a Contact, add its data to the 'contacts.csv' file, and return it.
-      @duplicate_email = false
-
-      CSV.foreach("contacts.csv") do |row|
-        if row.include?(email)
-          @duplicate_email = true
-        end
-      end
-
-      raise EmailExistsAlready ,'Email is a duplicate' if @duplicate_email
-      @contact_id = SecureRandom.uuid + Time.now.getutc.inspect # Create a unique ID 
-      csv_array = [name, email, phone_number, @contact_id]
-      CSV.open("contacts.csv", "a") { |csv_object| csv_object << csv_array}
-
-      rescue EmailExistsAlready => e 
-        puts "TRY THE COMMMAND WITH ANOTHER EMAIL, THIS ONE BELONGS TO A CURRENT CONTACT"
-
-      #@contact_id = SecureRandom.uuid + Time.now.getutc.inspect # Create a unique ID 
-      #csv_array = [name, email, @contact_id]
-      #CSV.open("contacts.csv", "a") { |csv_object| csv_object << csv_array}
+    def create (name, email, id = nil)
+       new_contact = Contact.new
+       new_contact.name = name
+       new_contact.email = email
+       new_contact.id = id
+       new_contact.save
+       new_contact
     end
 
     # Returns the contact with the specified id. If no contact has the id, returns nil.
     def find(id)
-      # TODO: Find the Contact in the 'contacts.csv' file with the matching id.
-      @found = false
-      CSV.foreach("contacts.csv") do |row|
-        
-        if row.include?(id)
-          puts row.inspect
-          @found = true
-        end 
-      end
-      puts "Contact does not exist" if !@found
+      res = connect.exec_params("SELECT * FROM contacts where id = #{id}::int;")
+      contact = Contact.new
+      contact.id = res[0]['id']
+      contact.name = res[0]['name']
+      contact.email = res[0]['email']
+      puts res[0]
+      contact
+
     end
 
     # Returns an array of contacts who match the given term.
     def search(term)
-      # TODO: Select the Contact instances from the 'contacts.csv' file whose name or email attributes contain the search term.
-      @found = false
-      CSV.foreach("contacts.csv") do |row|
-        
-        if row.include?(term)
-          puts row.inspect
-          @found = true
+       connect.exec("SELECT * FROM contacts where name = '#{term}' OR email = '#{term}';")do |results|
+        results.each do |contact|
+        puts contact.inspect
         end
       end
-     puts "Contact does not exist" if !@found 
+        connect.close
     end
 
   end
