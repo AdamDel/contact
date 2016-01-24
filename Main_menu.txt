@@ -3,4 +3,6 @@ Here is a list of available commands:
   list   - List all contacts
   show   - Show a contact 
   search - Search contacts
-   
+  Update - Update a contact
+  Destroy- Deletes a contact
+  

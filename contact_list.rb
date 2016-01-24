@@ -13,7 +13,7 @@ class ContactList
 
       when nil
         menu = File.open('Main_menu.txt', "r").readlines.each do |line|
-         puts line
+        puts line
         end
       
       when "new"
@@ -22,16 +22,9 @@ class ContactList
         name = gets.chomp.downcase.capitalize
         puts "what is the email?"
         email = gets.chomp.downcase
-        # puts "Enter phone number type? (ie. home for home phone, cell for cellphone, work for work phone)"
-        # type = gets.chomp
-        # puts "Enter the number in the format'444-555-3123'"
-        # number = gets.chomp
-        # phone = {
-        #   type.to_sym => number
-        # }
 
-        Contact.create(name,email)
-      when "update"
+        Contact.create(name: name, email: email)
+        when "update"
         ARGV.shift
         id = ARGV[0].to_i #+ " " + ARGV[1].to_s + " " + ARGV[2].to_s
         ARGV.shift
@@ -39,21 +32,26 @@ class ContactList
         name = gets.chomp.downcase.capitalize
         puts "what is the new email?"
         email = gets.chomp.downcase
-        Contact.update(id, name, email)
+        contact_to_update = Contact.find(id)
+        contact_to_update.update(name: name, email: email)
       when "list"
-        Contact.all
+        contactlist = Contact.all.order(:id)
+        contactlist.each { |contact| puts "#{contact[:id]}: #{contact[:name]} -> email: #{contact[:email]}" }
       when "destroy"
          ARGV.shift
           id = ARGV[0].to_i
-        Contact.destroy(id)      
+          contact_to_delete = Contact.find(id)
+          contact_to_delete.destroy    
       when "show"
         ARGV.shift
         id = ARGV[0].to_i #+ " " + ARGV[1].to_s + " " + ARGV[2].to_s
-        Contact.find(id)
+        contact_to_show = Contact.find(id)
+        puts "#{contact_to_show[:id]}: #{contact_to_show[:name]} -> email: #{contact_to_show[:email]}"
       when "search"
         ARGV.shift
         term = ARGV[0]
-        Contact.search(term)
+        search_results = Contact.where('name LIKE ? OR email LIKE ?',"%#{term}%", "%#{term}%")
+        search_results.each { |contact| puts "#{contact[:id]}: #{contact[:name]} -> email: #{contact[:email]}" }
       else 
       puts "Not a valid input"
       
@@ -61,5 +59,5 @@ class ContactList
   end
 end
 
-list = ContactList.new
-list.Interact_with_user
+# list = ContactList.new
+# list.Interact_with_user
